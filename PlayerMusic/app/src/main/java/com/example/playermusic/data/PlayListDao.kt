@@ -19,5 +19,5 @@ interface PlayListDao {
     suspend fun deletePlayList(item: MusicListModel)
 
     @Query("SELECT * FROM playlist ORDER BY name ASC")
-    fun refreshPlayList(): List<MusicListModel>
+    fun getPlayList(): List<MusicListModel>
 }

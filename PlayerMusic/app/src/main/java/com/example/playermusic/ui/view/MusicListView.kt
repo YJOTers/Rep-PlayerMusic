@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,11 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import com.example.playermusic.R
 import com.example.playermusic.ui.model.MusicModel
+import com.example.playermusic.ui.viewModel.PlayerMusicViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MusicList(
     modifier: Modifier = Modifier,
+    vmPlayerMusic: PlayerMusicViewModel,
     musicList: List<MusicModel> = listOf(),
     itemClicked: (MusicModel)-> Unit,
     addPlayListClicked: (MusicModel)-> Unit
@@ -44,7 +47,8 @@ fun MusicList(
                         onLongClick = { addPlayListClicked(itemMusic) }
                     ),
                 title = itemMusic.musicName,
-                artist = itemMusic.artistName
+                artist = itemMusic.artistName,
+                duration = vmPlayerMusic.durationFormat(itemMusic.musicDuration)
             )
         }
     }
@@ -54,7 +58,8 @@ fun MusicList(
 private fun ItemMusic(
     modifier: Modifier = Modifier,
     title: String,
-    artist: String
+    artist: String,
+    duration: String
 ){
     Card(
         modifier = modifier,
@@ -74,11 +79,20 @@ private fun ItemMusic(
                 minHeight = dimensionResource(id = R.dimen.short_dp_1),
                 maxHeight = dimensionResource(id = R.dimen.short_dp_2)
             ))
-            Text(
-                text = artist.uppercase(),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ){
+                Text(
+                    text = artist.uppercase(),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = duration,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

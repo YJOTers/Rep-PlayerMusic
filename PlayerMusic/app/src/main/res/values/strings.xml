@@ -10,6 +10,10 @@
     <string name="toast_insertPlayList">Playlist %s agregada</string>
     <string name="toast_updatePlayList">Playlist %s actualizada</string>
     <string name="toast_removePlayList">Playlist %s quitada</string>
+    <string name="toast_shuffle1">Aleatorio activado</string>
+    <string name="toast_shuffle2">Aleatorio desactivado</string>
+    <string name="toast_repeat1">Repetir activado</string>
+    <string name="toast_repeat2">Repetir desactivado</string>
     <string name="alert_dialog_remove">¿Estás seguro de borrar esta playlist?</string>
     <string name="alert_dialog_yes">Si</string>
     <string name="alert_dialog_no">No</string>

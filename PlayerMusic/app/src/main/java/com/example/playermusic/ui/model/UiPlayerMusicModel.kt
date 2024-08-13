@@ -13,7 +13,7 @@ data class UiPlayerMusicModel(
     val uiCurrentArtistIndex: Int = 0,//Indice actual del artista
     val uiCurrentPlayListIndex: Int = 0,//Indice actual de la playlist
     val uiCurrentMusicIndex: Int = 0,//Indice actual de la música por artista o playlist
-    val uiCurrentDuration: Int = 0,//Duración actual de la música
+    val uiCurrentDuration: Long = 0L,//Duración actual de la música
     val uiPlayListName: String = "",
     val uiSelectedMusic: MusicModel = MusicModel(),
     val uiFilter: List<MusicListModel> = listOf()

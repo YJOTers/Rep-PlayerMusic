@@ -3,6 +3,7 @@ package com.example.playermusic.ui.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,10 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import com.example.playermusic.R
 import com.example.playermusic.ui.model.MusicModel
+import com.example.playermusic.ui.viewModel.PlayerMusicViewModel
 
 @Composable
 fun CurrentPlayList(
     modifier: Modifier = Modifier,
+    vmPlayerMusic: PlayerMusicViewModel,
     playListMusic: List<MusicModel> = listOf(),
     itemClicked: (MusicModel)-> Unit
 ){
@@ -38,7 +41,8 @@ fun CurrentPlayList(
                     .fillMaxWidth()
                     .clickable { itemClicked(itemPlayListMusic) },
                 title = itemPlayListMusic.musicName,
-                artist = itemPlayListMusic.artistName
+                artist = itemPlayListMusic.artistName,
+                duration = vmPlayerMusic.durationFormat(itemPlayListMusic.musicDuration)
             )
         }
     }
@@ -48,7 +52,8 @@ fun CurrentPlayList(
 private fun ItemPlayListMusic(
     modifier: Modifier = Modifier,
     title: String,
-    artist: String
+    artist: String,
+    duration: String
 ){
     Card(
         modifier = modifier,
@@ -68,11 +73,20 @@ private fun ItemPlayListMusic(
                 minHeight = dimensionResource(id = R.dimen.short_dp_1),
                 maxHeight = dimensionResource(id = R.dimen.short_dp_2)
             ))
-            Text(
-                text = artist.uppercase(),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ){
+                Text(
+                    text = artist.uppercase(),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = duration,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }
