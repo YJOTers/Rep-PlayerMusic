@@ -3,6 +3,7 @@ package com.example.playermusic.ui.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -43,37 +44,39 @@ fun AddPlayList(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        TextField(
+        Row(
             modifier = Modifier.fillMaxWidth(0.9f),
-            label = {
-                Text(
-                    text = stringResource(id = R.string.app_search),
-                    style = MaterialTheme.typography.bodyMedium
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            TextField(
+                modifier = Modifier.weight(1f),
+                label = {
+                    Text(
+                        text = stringResource(id = R.string.app_search),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                value = playListName,
+                onValueChange = { name -> playListNameChange(name) },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Search,
+                    keyboardType = KeyboardType.Text
+                ),
+                keyboardActions = KeyboardActions(
+                    onSearch = { playListSearch() }
                 )
-            },
-            value = playListName,
-            onValueChange = { name -> playListNameChange(name) },
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Search,
-                keyboardType = KeyboardType.Text
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = { playListSearch() }
             )
-        )
-        Spacer(modifier = Modifier.sizeIn(
-            minHeight = dimensionResource(id = R.dimen.short_dp_1),
-            maxHeight = dimensionResource(id = R.dimen.short_dp_2)
-        ))
-        IconButton(
-            onClick = { addPlayListClicked(playListName) },
-            modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
-        ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.playlist_add_48),
-                contentDescription = null,
+            IconButton(
+                onClick = { addPlayListClicked(playListName) },
                 modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
-            )
+            ) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.playlist_add_48),
+                    contentDescription = null,
+                    modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
+                )
+            }
         }
         Spacer(modifier = Modifier.sizeIn(
             minHeight = dimensionResource(id = R.dimen.short_dp_1),
@@ -87,7 +90,7 @@ fun AddPlayList(
             items(filter){ item ->
                 Text(
                     text = item.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier
                         .padding(dimensionResource(id = R.dimen.short_dp_2))
                         .clickable { addPlayListClicked(item.name) }

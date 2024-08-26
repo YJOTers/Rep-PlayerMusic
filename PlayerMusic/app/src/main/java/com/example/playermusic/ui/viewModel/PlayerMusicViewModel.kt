@@ -9,16 +9,15 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.playermusic.MainApplication
 import com.example.playermusic.service.MusicService
 import com.example.playermusic.R
 import com.example.playermusic.data.MediaPlayerManager
 import com.example.playermusic.ui.model.MusicListModel
 import com.example.playermusic.ui.model.MusicModel
+import com.example.playermusic.ui.model.RepeatOptions
 import com.example.playermusic.ui.model.UiPlayerMusicModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -27,33 +26,24 @@ import kotlinx.coroutines.withContext
 
 class PlayerMusicViewModel: ViewModel(){
     //Estados mutables del ViewModel
-    private val _uiState = MutableStateFlow(UiPlayerMusicModel())
+    private val _uiState by lazy{ MediaPlayerManager.getUiState() }
     //Estados de solo lectura del ViewModel
     val uiState: StateFlow<UiPlayerMusicModel> = _uiState.asStateFlow()
     //Inicializa reproductor de multimedia
     private val mp by lazy{ MediaPlayerManager.getMediaPlayer() }
     //Base de datos para guardar las playlist
-    private val db by lazy{ MainApplication.database.playListDao() }
+    private val db by lazy{ MediaPlayerManager.getBD().playListDao() }
 
-    override fun onCleared() {
-        super.onCleared()
-        MediaPlayerManager.releaseMediaPlayer()
-        resetPlayerMusic()
-        MainApplication.database.close()
-    }
     /** Actualiza estado de lista de artistas **/
     private fun setUiArtistList(valueList: List<MusicListModel>){
         _uiState.update { currentState ->
             currentState.copy(uiArtistList = valueList)
         }
     }
-    /** Actualiza estado de lista de música **/
-    fun setUiMusicList(value: MusicListModel){
-        val list1 = uiState.value.uiArtistList
-        val index = list1.indexOf(value)
-        setUiCurrentArtistIndex(index)
+    /** Actualiza estado de lista de música actual **/
+    fun setUiMusicList(valueList: List<MusicModel>){
         _uiState.update { currentState ->
-            currentState.copy(uiMusicList = value.musicList)
+            currentState.copy(uiMusicList = valueList)
         }
     }
     /** Actualiza estado de lista de reproducción **/
@@ -62,13 +52,10 @@ class PlayerMusicViewModel: ViewModel(){
             currentState.copy(uiPlayList = valueList)
         }
     }
-    /** Actualiza estado de música en lista de reproducción **/
-    fun setUiPlayListMusic(value: MusicListModel){
-        val list2 = uiState.value.uiPlayList
-        val index = list2.indexOf(value)
-        setUiCurrentPlayListIndex(index)
+    /** Actualiza estado de música en lista de reproducción actual **/
+    fun setUiPlayListMusic(valueList: List<MusicModel>){
         _uiState.update { currentState ->
-            currentState.copy(uiPlayListMusic = value.musicList)
+            currentState.copy(uiPlayListMusic = valueList)
         }
     }
     /** Actualiza estado de pausa **/
@@ -78,57 +65,72 @@ class PlayerMusicViewModel: ViewModel(){
         }
     }
     /** Actualiza estado de aleatorio **/
-    fun setUiIsShuffle(applicationContext: Context, value: Boolean){
-        saveConfig(applicationContext, valueShuffle = value)
+    private fun setUiIsShuffle(value: Boolean){
         _uiState.update { currentState ->
             currentState.copy(uiIsShuffle = value)
         }
     }
-    /** Actualiza estado de repetir **/
-    fun setUiIsRepeat(applicationContext: Context, value: Boolean){
-        saveConfig(applicationContext, valueRepeat = value)
+    /** Actualiza estado si es playlist **/
+    fun setUiIsPlayList(value: Boolean){
         _uiState.update { currentState ->
-            currentState.copy(uiIsRepeat = value)
+            currentState.copy(uiIsPlayList = value)
+        }
+    }
+    /** Actualiza estado si se completó la música **/
+    fun setUiIsCompletion(value: Boolean){
+        _uiState.update { currentState ->
+            currentState.copy(uiIsCompletion = value)
+        }
+    }
+    /** Actualiza estado de repetir **/
+    private fun setUiRepeat(value: Int){
+        val v = when(value){
+            0 -> { RepeatOptions.Current }
+            1 -> { RepeatOptions.All }
+            else -> { RepeatOptions.Off }
+        }
+        _uiState.update { currentState ->
+            currentState.copy(uiRepeat = v)
         }
     }
     /** Actualiza estado de indice de lista de indices aleatorios **/
-    private fun setUiCountIndex(value: Int, isPlayList: Boolean){
-        val list = if(isPlayList) uiState.value.uiPlayListMusic
-        else uiState.value.uiMusicList
+    private fun setUiCountIndex(value: Int){
+        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
+                   else uiState.value.uiMusicList
         val v = if(value == -1){ list.lastIndex }
-        else{ value % list.size }
+                else{ value % list.size }
         _uiState.update { currentState ->
             currentState.copy(uiCountIndex = v)
         }
     }
     /** Actualiza estado de indice de artista actual **/
-    private fun setUiCurrentArtistIndex(value: Int){
+    fun setUiCurrentArtistListIndex(value: Int){
         val list = uiState.value.uiArtistList
         val v = if(value == -1){ list.lastIndex }
-        else{ value % list.size }
+                else{ value % list.size }
         _uiState.update { currentState ->
-            currentState.copy(uiCurrentArtistIndex = v)
+            currentState.copy(uiCurrentArtistListIndex = v)
         }
     }
     /** Actualiza estado de indice de lista de reproducción actual **/
-    private fun setUiCurrentPlayListIndex(value: Int){
+    fun setUiCurrentPlayListIndex(value: Int){
         val list = uiState.value.uiPlayList
         val v = if(value == -1){ list.lastIndex }
-        else{ value % list.size }
+                else{ value % list.size }
         _uiState.update { currentState ->
             currentState.copy(uiCurrentPlayListIndex = v)
         }
     }
     /** Actualiza estado de indice de música actual **/
-    fun setUiCurrentMusicIndex(value: Int, isPlayList: Boolean){
-        val list = if(isPlayList) uiState.value.uiPlayListMusic
-        else uiState.value.uiMusicList
+    fun setUiCurrentMusicListIndex(value: Int){
+        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
+                   else uiState.value.uiMusicList
         val v = if(value == -1){ list.lastIndex }
-        else{ value % list.size }
+                else{ value % list.size }
         _uiState.update { currentState ->
-            currentState.copy(uiCurrentMusicIndex = v)
+            currentState.copy(uiCurrentMusicListIndex = v)
         }
-        refreshMusic(isPlayList)
+        refreshMusic()
     }
     /** Actualiza estado manual de la duración de la música **/
     fun setUiManualDurationValue(value: Long){
@@ -138,11 +140,11 @@ class PlayerMusicViewModel: ViewModel(){
         }
     }
     /** Actualiza estado automático de la duración de la música **/
-    private fun setUiAutoDurationValue(isPlayList: Boolean){
+    private fun setUiAutoDurationValue(){
         viewModelScope.launch(Dispatchers.IO){
-            val list = if(isPlayList) uiState.value.uiPlayListMusic
-            else uiState.value.uiMusicList
-            val totalDurationSec = list[uiState.value.uiCurrentMusicIndex].musicDuration/1000
+            val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
+                       else uiState.value.uiMusicList
+            val totalDurationSec = list[uiState.value.uiCurrentMusicListIndex].musicDuration/1000
             val currentDurationSec = uiState.value.uiCurrentDuration/1000
             val condition = currentDurationSec < totalDurationSec
             while(condition){
@@ -153,78 +155,71 @@ class PlayerMusicViewModel: ViewModel(){
             }
         }
     }
-    /** Actualiza estado del nombre de la lista de reproducción **/
-    fun setUiPlayListName(value: String){
-        _uiState.update{ currentState ->
-            currentState.copy(uiPlayListName = value)
-        }
-    }
-    /** Actualiza estado de la música actual **/
-    fun setUiSelectedMusic(value: MusicModel){
-        _uiState.update{ currentState ->
-            currentState.copy(uiSelectedMusic = value)
-        }
-    }
-    /** Actualiza estado del filtro de busqueda de listas de reproducción **/
-    fun setUiFilter(value: List<MusicListModel>){
-        _uiState.update{ currentState ->
-            currentState.copy(uiFilter = value)
-        }
-    }
-    /** Resetea estados del modelo **/
-    private fun resetPlayerMusic(){
-        _uiState.value = UiPlayerMusicModel()
-    }
     /** Convierte duración de Long a String formato minutos:segundos **/
     fun durationFormat(duration: Long) : String {
         var seconds = duration/1000
         val minutes = seconds/60
         seconds %= 60
         return if (seconds < 10) "$minutes:0$seconds"
-        else "$minutes:$seconds"
+               else "$minutes:$seconds"
+    }
+    /** Actualiza el artista y la música en la notificación **/
+    fun refreshNotification(){
+        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
+                   else uiState.value.uiMusicList
+        MediaPlayerManager.setCurrentMusic(
+            musicName = list[uiState.value.uiCurrentMusicListIndex].musicName,
+            artistName = list[uiState.value.uiCurrentMusicListIndex].artistName
+        )
     }
     /** Establece música actual en el MediaPlayer **/
-    private fun refreshMusic(isPlayList: Boolean){
-        val list = if(isPlayList) uiState.value.uiPlayListMusic
-        else uiState.value.uiMusicList
-        MediaPlayerManager.setCurrentMusic(
-            musicName = list[uiState.value.uiCurrentMusicIndex].musicName,
-            artistName = list[uiState.value.uiCurrentMusicIndex].artistName
-        )
+    private fun refreshMusic(){
+        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
+                   else uiState.value.uiMusicList
         mp.reset()
-        mp.setDataSource(list[uiState.value.uiCurrentMusicIndex].musicPath)
+        mp.setDataSource(list[uiState.value.uiCurrentMusicListIndex].musicPath)
         mp.prepare()
         setUiManualDurationValue(0)
         setUiIsPause(true)
     }
     /** Reproduce automaticamente la música **/
-    private fun musicClicked(isPlayList: Boolean){
+    private fun musicClicked(){
         viewModelScope.launch(Dispatchers.IO){
-            val indexRandom =
-                if (isPlayList) (0..uiState.value.uiPlayListMusic.lastIndex).toList().shuffled()
-                else (0..uiState.value.uiMusicList.lastIndex).toList().shuffled()
+            val indexRandom = if(uiState.value.uiIsPlayList) (0..uiState.value.uiPlayListMusic.lastIndex).toList().shuffled()
+                              else (0..uiState.value.uiMusicList.lastIndex).toList().shuffled()
             mp.setOnCompletionListener {
-                if (uiState.value.uiIsShuffle && uiState.value.uiIsRepeat) {
-                    //Si ambos estan activos
-                    setUiCurrentMusicIndex(indexRandom[uiState.value.uiCountIndex], isPlayList)
-                    playClicked(isPlayList)
-                    setUiCountIndex(uiState.value.uiCountIndex + 1, isPlayList)
-                } else if (uiState.value.uiIsShuffle && !uiState.value.uiIsRepeat) {
-                    //Si aleatorio esta activo
-                    setUiCurrentMusicIndex(indexRandom[uiState.value.uiCountIndex], isPlayList)
-                    playClicked(isPlayList)
-                    setUiCountIndex(uiState.value.uiCountIndex + 1, isPlayList)
-                } else if (uiState.value.uiIsRepeat && !uiState.value.uiIsShuffle) {
-                    //Si repetir esta activo
-                    setUiCurrentMusicIndex(uiState.value.uiCurrentMusicIndex + 1, isPlayList)
-                    playClicked(isPlayList)
-                } else setUiIsPause(true) //Si ninguno esta activo
+                setUiIsCompletion(true)
+                if(uiState.value.uiRepeat == RepeatOptions.Current && !uiState.value.uiIsShuffle){
+                    //Si repetir la misma música esta activa
+                    setUiCurrentMusicListIndex(uiState.value.uiCurrentMusicListIndex)
+                    playClicked()
+                }else if(uiState.value.uiIsShuffle && uiState.value.uiRepeat == RepeatOptions.Current){
+                    //Si ambos estan activos caso 1
+                    setUiCurrentMusicListIndex(uiState.value.uiCurrentMusicListIndex)
+                    playClicked()
+                }else{
+                    if (uiState.value.uiIsShuffle && uiState.value.uiRepeat == RepeatOptions.All) {
+                        //Si ambos estan activos caso 2
+                        setUiCurrentMusicListIndex(indexRandom[uiState.value.uiCountIndex])
+                        playClicked()
+                        setUiCountIndex(uiState.value.uiCountIndex + 1)
+                    } else if (uiState.value.uiIsShuffle && uiState.value.uiRepeat == RepeatOptions.Off) {
+                        //Si aleatorio esta activo
+                        setUiCurrentMusicListIndex(indexRandom[uiState.value.uiCountIndex])
+                        playClicked()
+                        setUiCountIndex(uiState.value.uiCountIndex + 1)
+                    } else if (uiState.value.uiRepeat == RepeatOptions.All && !uiState.value.uiIsShuffle) {
+                        //Si repetir toda la lista esta activa
+                        setUiCurrentMusicListIndex(uiState.value.uiCurrentMusicListIndex + 1)
+                        playClicked()
+                    } else setUiIsPause(true) //Si ninguno esta activo
+                }
             }
         }
     }
     /** Reproduce o pausa la música actual **/
-    fun playClicked(isPlayList: Boolean){
-        musicClicked(isPlayList)
+    fun playClicked(){
+        musicClicked()
         if (mp.isPlaying) {
             mp.pause()
             setUiIsPause(true)
@@ -232,7 +227,7 @@ class PlayerMusicViewModel: ViewModel(){
             mp.start()
             setUiIsPause(false)
         }
-        setUiAutoDurationValue(isPlayList)
+        setUiAutoDurationValue()
     }
     /** Inicia servicio de notificación de la reproducción de música **/
     fun startServiceMusicPlayer(applicationContext: Context){
@@ -259,77 +254,87 @@ class PlayerMusicViewModel: ViewModel(){
     /** Obtiene música del dispositivo móvil del usuario **/
     fun getArtistList(applicationContext: Context){
         //Realiza la consulta en un hilo de fondo para optimizar el rendimiento
-        val musicUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val subUri = Uri.parse("content://media/external/audio/albumart")
-        //Define la información a obtener
-        val projection = arrayOf(
-            MediaStore.Audio.Media.DATA,
-            MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.ALBUM_ID
-        )
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} DESC"
-        val artistList = mutableListOf<MusicListModel>()
-        applicationContext.contentResolver.query(
-            musicUri,
-            projection,
-            null,
-            null,
-            sortOrder
-        )?.use{ cursor ->
-            //Obtiene la información de los audios del dispositivo móvil
-            val musicPathColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
-            val musicDurationColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
-            val musicNameColumn = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
-            val artistNameColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
-            val albumNameColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)
-            val albumIdColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)
-            while(cursor.moveToNext()){
-                val thisMusicPath = cursor.getString(musicPathColumn)
-                val thisMusicDuration = cursor.getLong(musicDurationColumn)
-                val thisMusicName = cursor.getString(musicNameColumn)
-                val thisArtistName = cursor.getString(artistNameColumn)
-                val thisAlbumName = cursor.getString(albumNameColumn)
-                val thisAlbumId = cursor.getLong(albumIdColumn)
-                val albumUri = ContentUris.withAppendedId(subUri, thisAlbumId).toString()
-                val index = artistList.indexOfLast { it.name == thisArtistName }
-                if(index == -1){
-                    //Si no hay el artista indicado
-                    val musicList = listOf(
-                        MusicModel(
-                            musicPath = thisMusicPath,
-                            musicDuration = thisMusicDuration,
-                            musicName = thisMusicName,
-                            artistName = thisArtistName,
-                            albumName = thisAlbumName,
-                            albumUri = albumUri
-                        ))
-                    artistList.add(MusicListModel(
-                        name = thisArtistName,
-                        musicList = musicList
-                    ))
-                }else{
-                    //Si hay el artista indicado
-                    val musicList = artistList[index].musicList.toMutableList()
-                    musicList.add(
-                        MusicModel(
-                            musicPath = thisMusicPath,
-                            musicDuration = thisMusicDuration,
-                            musicName = thisMusicName,
-                            artistName = thisArtistName,
-                            albumName = thisAlbumName,
-                            albumUri = albumUri
-                        ))
-                    artistList[index] = MusicListModel(
-                        name = thisArtistName,
-                        musicList = musicList
-                    )
+        viewModelScope.launch(Dispatchers.IO){
+            val musicUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            val subUri = Uri.parse("content://media/external/audio/albumart")
+            //Define la información a obtener
+            val projection = arrayOf(
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.ALBUM_ID
+            )
+            val sortOrder = "${MediaStore.Audio.Media.TITLE} DESC"
+            val artistList = mutableListOf<MusicListModel>()
+            applicationContext.contentResolver.query(
+                musicUri,
+                projection,
+                null,
+                null,
+                sortOrder
+            )?.use { cursor ->
+                //Obtiene la información de los audios del dispositivo móvil
+                val musicPathColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
+                val musicDurationColumn = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
+                val musicNameColumn = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
+                val artistNameColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)
+                val albumNameColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM)
+                val albumIdColumn = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)
+                while (cursor.moveToNext()) {
+                    val thisMusicPath = cursor.getString(musicPathColumn)
+                    val thisMusicDuration = cursor.getLong(musicDurationColumn)
+                    val thisMusicName = cursor.getString(musicNameColumn)
+                    val thisArtistName = cursor.getString(artistNameColumn)
+                    val thisAlbumName = cursor.getString(albumNameColumn)
+                    val thisAlbumId = cursor.getLong(albumIdColumn)
+                    val albumUri = ContentUris.withAppendedId(subUri, thisAlbumId).toString()
+                    val index = artistList.indexOfLast { it.name == thisArtistName }
+                    if (index == -1) {
+                        //Si no hay el artista indicado
+                        val musicList = listOf(
+                            MusicModel(
+                                musicPath = thisMusicPath,
+                                musicDuration = thisMusicDuration,
+                                musicDurationFormat = durationFormat(thisMusicDuration),
+                                musicName = thisMusicName,
+                                artistName = thisArtistName,
+                                albumName = thisAlbumName,
+                                albumUri = albumUri
+                            )
+                        )
+                        artistList.add(
+                            MusicListModel(
+                                name = thisArtistName,
+                                musicList = musicList
+                            )
+                        )
+                    } else {
+                        //Si hay el artista indicado
+                        val musicList = artistList[index].musicList.toMutableList()
+                        musicList.add(
+                            MusicModel(
+                                musicPath = thisMusicPath,
+                                musicDuration = thisMusicDuration,
+                                musicDurationFormat = durationFormat(thisMusicDuration),
+                                musicName = thisMusicName,
+                                artistName = thisArtistName,
+                                albumName = thisAlbumName,
+                                albumUri = albumUri
+                            )
+                        )
+                        artistList[index] = MusicListModel(
+                            name = thisArtistName,
+                            musicList = musicList
+                        )
+                    }
                 }
             }
+            withContext(Dispatchers.Main){
+                setUiArtistList(artistList)
+            }
         }
-        setUiArtistList(artistList)
     }
     /** Obtiene las listas de reproducción guardadas en la BD local **/
     fun getPlayList(){
@@ -337,7 +342,6 @@ class PlayerMusicViewModel: ViewModel(){
             val data = db.getPlayList()
             withContext(Dispatchers.Main){
                 setUiPlayList(data)
-                setUiFilter(data)
             }
         }
     }
@@ -363,14 +367,14 @@ class PlayerMusicViewModel: ViewModel(){
         }
     }
     /** Guarda datos persistentes para botones aleatorio y repetir **/
-    private fun saveConfig(
+    fun saveConfig(
         applicationContext: Context,
-        valueRepeat: Boolean? = null,
+        valueRepeat: Int? = null,
         valueShuffle: Boolean? = null
     ){
         val sp = applicationContext.getSharedPreferences("MyConfig", Context.MODE_PRIVATE)
         sp.edit().apply {
-            if(valueRepeat != null) putBoolean("repeat", valueRepeat)
+            if(valueRepeat != null) putInt("repeat", valueRepeat)
             if(valueShuffle != null) putBoolean("shuffle", valueShuffle)
             apply()
         }
@@ -379,8 +383,8 @@ class PlayerMusicViewModel: ViewModel(){
     fun getConfig(applicationContext: Context){
         val sp = applicationContext.getSharedPreferences("MyConfig", Context.MODE_PRIVATE)
         sp.apply {
-            setUiIsRepeat(applicationContext, getBoolean("repeat", false))
-            setUiIsShuffle(applicationContext, getBoolean("shuffle", false))
+            setUiRepeat(getInt("repeat", 2))
+            setUiIsShuffle(getBoolean("shuffle", false))
         }
     }
 }

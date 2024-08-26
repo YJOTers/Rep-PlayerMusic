@@ -1,12 +1,12 @@
 package com.example.playermusic
 
 import android.Manifest
-import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
-import com.example.playermusic.service.MusicService
 import com.example.playermusic.ui.theme.PlayerMusicTheme
 import com.example.playermusic.ui.viewModel.PlayerMusicViewModel
 
@@ -14,6 +14,7 @@ class MainActivity : ComponentActivity() {
 
     private val vmPlayerMusic by lazy { PlayerMusicViewModel() }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onResume() {
         super.onResume()
         getPermission()
@@ -36,18 +38,11 @@ class MainActivity : ComponentActivity() {
         vmPlayerMusic.getConfig(applicationContext)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        //Cerrar servicio
-        val serviceIntent = Intent(applicationContext, MusicService::class.java)
-        stopService(serviceIntent)
-        //Cerrar la aplicación
-        finishAffinity()
-    }
-
+    @RequiresApi(Build.VERSION_CODES.S)
     private fun getPermission() {
         val permissionRequired = arrayOf(
-            Manifest.permission.READ_EXTERNAL_STORAGE
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.BLUETOOTH_CONNECT
         )
         //Solicita permisos
         ActivityCompat.requestPermissions(this,permissionRequired,0)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
 import com.example.playermusic.R
+import com.example.playermusic.ui.model.RepeatOptions
 
 @Composable
 fun CurrentMusic(
@@ -47,7 +49,7 @@ fun CurrentMusic(
     clickedNext: ()-> Unit,
     isPause: Boolean,
     isShuffle: Boolean,
-    isRepeat: Boolean,
+    isRepeat: RepeatOptions,
     duration: String,
     currentDuration: String,
     durationValue: Float,
@@ -82,7 +84,8 @@ fun CurrentMusic(
             clicked1 = clickedPlayList,
             idIcon2 = R.drawable.shuffle_48,
             clicked2 = clickedShuffle,
-            idIcon3 = R.drawable.repeat_48,
+            idIcon3 = if(isRepeat == RepeatOptions.All || isRepeat == RepeatOptions.Off)
+                          R.drawable.repeat_48 else R.drawable.repeat_one_48,
             clicked3 = clickedRepeat,
         )
         ItemDescription(
@@ -131,7 +134,7 @@ private fun ButtonsControl(
     @DrawableRes idIcon2: Int,
     @DrawableRes idIcon3: Int,
     isShuffle: Boolean = false,
-    isRepeat: Boolean = false,
+    isRepeat: RepeatOptions = RepeatOptions.Off,
     totalDuration: String? = null,
     currentDuration: String? = null,
     clicked1: ()-> Unit,
@@ -148,15 +151,13 @@ private fun ButtonsControl(
         if(currentDuration != null){
             Text(
                 text = currentDuration,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.weight(1f)
+                textAlign = TextAlign.Start
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = clicked1,
-            modifier = Modifier
-                .weight(1f)
-                .size(dimensionResource(id = R.dimen.short_dp_5))
+            modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(idIcon1),
@@ -164,11 +165,10 @@ private fun ButtonsControl(
                 modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = clicked2,
-            modifier = Modifier
-                .weight(1f)
-                .size(dimensionResource(id = R.dimen.short_dp_5))
+            modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(idIcon2),
@@ -178,25 +178,24 @@ private fun ButtonsControl(
                        else MaterialTheme.colorScheme.onSurface
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = clicked3,
-            modifier = Modifier
-                .weight(1f)
-                .size(dimensionResource(id = R.dimen.short_dp_5))
+            modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5))
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(idIcon3),
                 contentDescription = null,
                 modifier = Modifier.size(dimensionResource(id = R.dimen.short_dp_5)),
-                tint = if(isRepeat) Color.Blue
-                       else MaterialTheme.colorScheme.onSurface
+                tint = if(isRepeat == RepeatOptions.All || isRepeat == RepeatOptions.Current)
+                           Color.Blue else MaterialTheme.colorScheme.onSurface
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
         if(totalDuration != null){
             Text(
                 text = totalDuration,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f)
+                textAlign = TextAlign.End
             )
         }
     }
