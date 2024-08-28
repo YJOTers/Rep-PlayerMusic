@@ -3,9 +3,8 @@ package com.example.playermusic.ui.model
 data class UiPlayerMusicModel(
     //Estados del reproductor de música
     val uiArtistList: List<MusicListModel> = listOf(),
-    val uiMusicList: List<MusicModel> = listOf(),
     val uiPlayList: List<MusicListModel> = listOf(),
-    val uiPlayListMusic: List<MusicModel> = listOf(),
+    val uiMusicList: List<MusicModel> = listOf(),
     val uiIsPause: Boolean = true,
     val uiIsShuffle: Boolean = false,
     val uiIsCompletion: Boolean = false,

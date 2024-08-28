@@ -40,22 +40,16 @@ class PlayerMusicViewModel: ViewModel(){
             currentState.copy(uiArtistList = valueList)
         }
     }
-    /** Actualiza estado de lista de música actual **/
-    fun setUiMusicList(valueList: List<MusicModel>){
-        _uiState.update { currentState ->
-            currentState.copy(uiMusicList = valueList)
-        }
-    }
     /** Actualiza estado de lista de reproducción **/
     private fun setUiPlayList(valueList: List<MusicListModel>){
         _uiState.update { currentState ->
             currentState.copy(uiPlayList = valueList)
         }
     }
-    /** Actualiza estado de música en lista de reproducción actual **/
-    fun setUiPlayListMusic(valueList: List<MusicModel>){
+    /** Actualiza estado de lista de música actual **/
+    fun setUiMusicList(valueList: List<MusicModel>){
         _uiState.update { currentState ->
-            currentState.copy(uiPlayListMusic = valueList)
+            currentState.copy(uiMusicList = valueList)
         }
     }
     /** Actualiza estado de pausa **/
@@ -93,16 +87,6 @@ class PlayerMusicViewModel: ViewModel(){
             currentState.copy(uiRepeat = v)
         }
     }
-    /** Actualiza estado de indice de lista de indices aleatorios **/
-    private fun setUiCountIndex(value: Int){
-        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
-                   else uiState.value.uiMusicList
-        val v = if(value == -1){ list.lastIndex }
-                else{ value % list.size }
-        _uiState.update { currentState ->
-            currentState.copy(uiCountIndex = v)
-        }
-    }
     /** Actualiza estado de indice de artista actual **/
     fun setUiCurrentArtistListIndex(value: Int){
         val list = uiState.value.uiArtistList
@@ -123,14 +107,22 @@ class PlayerMusicViewModel: ViewModel(){
     }
     /** Actualiza estado de indice de música actual **/
     fun setUiCurrentMusicListIndex(value: Int){
-        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
-                   else uiState.value.uiMusicList
+        val list = uiState.value.uiMusicList
         val v = if(value == -1){ list.lastIndex }
                 else{ value % list.size }
         _uiState.update { currentState ->
             currentState.copy(uiCurrentMusicListIndex = v)
         }
         refreshMusic()
+    }
+    /** Actualiza estado de indice de lista de indices aleatorios **/
+    private fun setUiCountIndex(value: Int){
+        val list = uiState.value.uiMusicList
+        val v = if(value == -1){ list.lastIndex }
+        else{ value % list.size }
+        _uiState.update { currentState ->
+            currentState.copy(uiCountIndex = v)
+        }
     }
     /** Actualiza estado manual de la duración de la música **/
     fun setUiManualDurationValue(value: Long){
@@ -142,8 +134,7 @@ class PlayerMusicViewModel: ViewModel(){
     /** Actualiza estado automático de la duración de la música **/
     private fun setUiAutoDurationValue(){
         viewModelScope.launch(Dispatchers.IO){
-            val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
-                       else uiState.value.uiMusicList
+            val list = uiState.value.uiMusicList
             val totalDurationSec = list[uiState.value.uiCurrentMusicListIndex].musicDuration/1000
             val currentDurationSec = uiState.value.uiCurrentDuration/1000
             val condition = currentDurationSec < totalDurationSec
@@ -165,8 +156,7 @@ class PlayerMusicViewModel: ViewModel(){
     }
     /** Actualiza el artista y la música en la notificación **/
     fun refreshNotification(){
-        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
-                   else uiState.value.uiMusicList
+        val list = uiState.value.uiMusicList
         MediaPlayerManager.setCurrentMusic(
             musicName = list[uiState.value.uiCurrentMusicListIndex].musicName,
             artistName = list[uiState.value.uiCurrentMusicListIndex].artistName
@@ -174,8 +164,7 @@ class PlayerMusicViewModel: ViewModel(){
     }
     /** Establece música actual en el MediaPlayer **/
     private fun refreshMusic(){
-        val list = if(uiState.value.uiIsPlayList) uiState.value.uiPlayListMusic
-                   else uiState.value.uiMusicList
+        val list = uiState.value.uiMusicList
         mp.reset()
         mp.setDataSource(list[uiState.value.uiCurrentMusicListIndex].musicPath)
         mp.prepare()
@@ -185,8 +174,7 @@ class PlayerMusicViewModel: ViewModel(){
     /** Reproduce automaticamente la música **/
     private fun musicClicked(){
         viewModelScope.launch(Dispatchers.IO){
-            val indexRandom = if(uiState.value.uiIsPlayList) (0..uiState.value.uiPlayListMusic.lastIndex).toList().shuffled()
-                              else (0..uiState.value.uiMusicList.lastIndex).toList().shuffled()
+            val indexRandom = (0..uiState.value.uiMusicList.lastIndex).toList().shuffled()
             mp.setOnCompletionListener {
                 setUiIsCompletion(true)
                 if(uiState.value.uiRepeat == RepeatOptions.Current && !uiState.value.uiIsShuffle){
@@ -370,21 +358,25 @@ class PlayerMusicViewModel: ViewModel(){
     fun saveConfig(
         applicationContext: Context,
         valueRepeat: Int? = null,
-        valueShuffle: Boolean? = null
-    ){
+        isShuffle: Boolean? = null
+        ){
         val sp = applicationContext.getSharedPreferences("MyConfig", Context.MODE_PRIVATE)
         sp.edit().apply {
             if(valueRepeat != null) putInt("repeat", valueRepeat)
-            if(valueShuffle != null) putBoolean("shuffle", valueShuffle)
+            if(isShuffle != null) putBoolean("isShuffle", isShuffle)
             apply()
         }
     }
     /** Obtiene datos persistentes de botones aleatorio y repetir **/
     fun getConfig(applicationContext: Context){
-        val sp = applicationContext.getSharedPreferences("MyConfig", Context.MODE_PRIVATE)
-        sp.apply {
-            setUiRepeat(getInt("repeat", 2))
-            setUiIsShuffle(getBoolean("shuffle", false))
+        viewModelScope.launch(Dispatchers.IO){
+            val sp = applicationContext.getSharedPreferences("MyConfig", Context.MODE_PRIVATE)
+            sp.apply {
+                withContext(Dispatchers.Main){
+                    setUiRepeat(getInt("repeat", 2))
+                    setUiIsShuffle(getBoolean("isShuffle", false))
+                }
+            }
         }
     }
 }

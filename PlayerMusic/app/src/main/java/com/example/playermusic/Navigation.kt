@@ -129,9 +129,10 @@ fun AppScreen(
     val artistList = uiStatePlayerMusic.uiArtistList
     //Vista PlayList
     val playList = uiStatePlayerMusic.uiPlayList
-    //Listas de reproduccion
+    //Lista de reproduccion
     val musicList = uiStatePlayerMusic.uiMusicList
-    val playlistMusic = uiStatePlayerMusic.uiPlayListMusic
+    //Es playlist o artistlist
+    val isPlayList = uiStatePlayerMusic.uiIsPlayList
     //Variables locales
     var playListName by remember{ mutableStateOf("") }
     var selectedMusic by remember{ mutableStateOf(MusicModel()) }
@@ -178,7 +179,7 @@ fun AppScreen(
             key1 = uiStatePlayerMusic.uiIsCompletion,
             block = {
                 if (uiStatePlayerMusic.uiIsCompletion) {
-                    selectedMusic = if(uiStatePlayerMusic.uiIsPlayList) playList[index1].musicList[index2]
+                    selectedMusic = if(isPlayList) playList[index1].musicList[index2]
                                     else artistList[index0].musicList[index2]
                     vmPlayerMusic.setUiIsCompletion(false)
                     vmPlayerMusic.refreshNotification()
@@ -245,10 +246,10 @@ fun AppScreen(
                     },
                     clickedShuffle = {
                         if(!uiStatePlayerMusic.uiIsShuffle){
-                            vmPlayerMusic.saveConfig(context.applicationContext, valueShuffle = true)
+                            vmPlayerMusic.saveConfig(context.applicationContext, isShuffle = true)
                             Toast.makeText(context, context.getString(R.string.toast_shuffle1), Toast.LENGTH_SHORT).show()
                         }else{
-                            vmPlayerMusic.saveConfig(context.applicationContext, valueShuffle = false)
+                            vmPlayerMusic.saveConfig(context.applicationContext, isShuffle = false)
                             Toast.makeText(context, context.getString(R.string.toast_shuffle2), Toast.LENGTH_SHORT).show()
                         }
                     },
@@ -382,7 +383,7 @@ fun AppScreen(
                                 musicList = list
                             )
                             vmPlayerMusic.updatePlayList(item)
-                            vmPlayerMusic.setUiPlayListMusic(playList[index1].musicList)
+                            vmPlayerMusic.setUiMusicList(playList[index1].musicList)
                             Toast.makeText(context, smsAlert3, Toast.LENGTH_SHORT).show()
                             removeMusic = false
                             selectedItem = MusicModel()
@@ -400,11 +401,11 @@ fun AppScreen(
                     itemClicked = { itemPlayListMusic ->
                         val index = playList[index1].musicList.indexOf(itemPlayListMusic)
                         if(itemPlayListMusic != selectedMusic) {
-                            vmPlayerMusic.setUiPlayListMusic(playList[index1].musicList)
+                            vmPlayerMusic.setUiMusicList(playList[index1].musicList)
                             vmPlayerMusic.setUiCurrentMusicListIndex(index)
                         }else{
-                            if(playList[index1].musicList != playlistMusic){
-                                vmPlayerMusic.setUiPlayListMusic(playList[index1].musicList)
+                            if(playList[index1].musicList != musicList){
+                                vmPlayerMusic.setUiMusicList(playList[index1].musicList)
                                 vmPlayerMusic.setUiCurrentMusicListIndex(index)
                             }
                         }
@@ -433,10 +434,10 @@ fun AppScreen(
                     },
                     clickedShuffle = {
                         if(!uiStatePlayerMusic.uiIsShuffle){
-                            vmPlayerMusic.saveConfig(context.applicationContext, valueShuffle = true)
+                            vmPlayerMusic.saveConfig(context.applicationContext, isShuffle = true)
                             Toast.makeText(context, context.getString(R.string.toast_shuffle1), Toast.LENGTH_SHORT).show()
                         }else{
-                            vmPlayerMusic.saveConfig(context.applicationContext, valueShuffle = false)
+                            vmPlayerMusic.saveConfig(context.applicationContext, isShuffle = false)
                             Toast.makeText(context, context.getString(R.string.toast_shuffle2), Toast.LENGTH_SHORT).show()
                         }
                     },
